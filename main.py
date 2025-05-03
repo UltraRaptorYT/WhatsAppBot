@@ -15,7 +15,7 @@ root = None
 
 namelist_label_text = "Namelist Excel File"
 message_label_text = "Message Text File"
-image_label_text = "Image File"
+image_label_text = "Image Files"
 document_label_text = "Document File"
 failed_numbers = []
 
@@ -37,10 +37,10 @@ def copy_image_to_clipboard(image_path):
 
 
 def reset_paths():
-    global namelist_path, message_path, image_path, document_path
+    global namelist_path, message_path, image_paths, document_path
     namelist_path = None
     message_path = None
-    image_path = None
+    image_paths = []
     document_path = None
     namelist_label.config(text=namelist_label_text)
     message_label.config(text=message_label_text)
@@ -49,13 +49,14 @@ def reset_paths():
 
 
 def upload_image_file():
-    file_path = upload_file(
-        file_type=(("Image File", "*.png *.jpg *.jpeg *.gif *.bmp *.ico *.webp"),)
+    global image_paths
+    image_paths = filedialog.askopenfilenames(
+        filetypes=(("Image Files", "*.png *.jpg *.jpeg *.gif *.bmp *.ico *.webp"),)
     )
-    if file_path:
-        global image_path
-        image_path = file_path
-        image_label.config(text=f"Selected {image_label_text}: {file_path}")
+    if image_paths:
+        image_label.config(text=f"Selected {len(image_paths)} image(s)")
+    else:
+        image_label.config(text=image_label_text)
 
 
 def upload_document_file():
@@ -156,11 +157,13 @@ def process_data():
                 pg.press("enter")
                 print("SENDING DOCUMENT")
 
-            if image_path:
-                copy_image_to_clipboard(image_path)
-                time.sleep(1)
-                page.press("[aria-activedescendant]", "ControlOrMeta+v")
-                print("SENDING IMAGE")
+            if image_paths:
+                for path in image_paths:
+                    copy_image_to_clipboard(path)
+                    time.sleep(1)
+                    page.press("[aria-activedescendant]", "ControlOrMeta+v")
+                    print(f"SENDING IMAGE: {path}")
+                    time.sleep(2)
 
             time.sleep(2)
             page.click('[data-icon="send"]')
@@ -273,7 +276,7 @@ def main():
     image_label.pack(pady=(10, 2.5))
 
     image_button = tk.Button(
-        main_frame, text="Upload Image File", command=upload_image_file
+        main_frame, text="Upload Image Files", command=upload_image_file
     )
     image_button.pack(pady=(2.5, 10))
 
@@ -311,7 +314,7 @@ Instructions:
 
 1. Upload the Namelist Excel file. [Must contain the following COLUMN NAME ("Name", "Mobile Number")]
 2. Upload the Message Template file. [If want to be personalised, text should contain "{name}" so that it will be replaced by the "Name"]
-3. Upload the Image file. [OPTIONAL]
+3. Upload the Image file(s). [OPTIONAL]
 4. Upload the Document file. [OPTIONAL, Note using this mode will not allow for background running of bot]
 5. Click 'Send Message' to send message to namelist.
 6. Click 'Reset' to clear the selected files.
