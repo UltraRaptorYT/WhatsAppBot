@@ -314,8 +314,8 @@ Instructions:
 
 1. Upload the Namelist Excel file. [Must contain the following COLUMN NAME ("Name", "Mobile Number")]
 2. Upload the Message Template file. [If want to be personalised, text should contain "{name}" so that it will be replaced by the "Name"]
-3. Upload the Image file(s). [OPTIONAL]
-4. Upload the Document file. [OPTIONAL, Note using this mode will not allow for background running of bot]
+3. Upload the Image file(s) [Less than 16MB]. [OPTIONAL]
+4. Upload the Document file. [Less than 16MB] [OPTIONAL, Note using this mode will not allow for background running of bot]
 5. Click 'Send Message' to send message to namelist.
 6. Click 'Reset' to clear the selected files.
 """
