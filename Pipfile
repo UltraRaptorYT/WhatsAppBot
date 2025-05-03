@@ -1,0 +1,28 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pandas = "*"
+openpyxl = "*"
+xlsx2html = "*"
+pdfkit = "*"
+pywin32 = "*"
+pypiwin32 = "*"
+selenium = "*"
+pywhatkit = "*"
+xlwings = {extras = ["all"], version = "*"}
+exceltypes = "*"
+easygui = "*"
+screeninfo = "*"
+pyperclip = "*"
+rpa = "*"
+playwright = "*"
+auto-py-to-exe = "*"
+pyinstaller = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.8"
