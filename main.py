@@ -12,7 +12,7 @@ import pyperclip
 import pyautogui as pg
 from PIL import Image
 import win32clipboard
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import sync_playwright
 
 root = None
 
@@ -188,9 +188,7 @@ def process_data():
                     check = last_message.locator('[data-icon="msg-check"]')
                     dbl_check = last_message.locator('[data-icon="msg-dblcheck"]')
                     if dbl_check.count() > 0 or check.count() > 0:
-                        logger(
-                            f"{phone_number} Message sent and delivery confirmed"
-                        )
+                        logger(f"{phone_number} Message sent and delivery confirmed")
                         break
                 time.sleep(1)
             else:
