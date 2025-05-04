@@ -1,15 +1,18 @@
 import time
+from datetime import datetime
+from io import BytesIO
+from urllib.parse import quote
+from platform import system
+
 import tkinter as tk
 from tkinter import filedialog
+
 import pandas as pd
-from playwright.sync_api import sync_playwright
 import pyperclip
-from urllib.parse import quote
-from io import BytesIO
+import pyautogui as pg
 from PIL import Image
 import win32clipboard
-from platform import system
-import pyautogui as pg
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
 root = None
 
@@ -18,6 +21,14 @@ message_label_text = "Message Text File"
 image_label_text = "Image Files"
 document_label_text = "Document File"
 failed_numbers = []
+
+
+def logger(message, logType="INFO", log_file="log.txt"):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    formatted_message = f"[{timestamp}] [{logType}] : {message}"
+    print(formatted_message)
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(formatted_message + "\n")
 
 
 def copy_image_to_clipboard(image_path):
@@ -68,6 +79,7 @@ def upload_document_file():
 
 
 def process_data():
+    logger("Processing Data...")
     global failed_numbers
     failed_numbers = []
     global namelist_path
@@ -97,7 +109,7 @@ def process_data():
         error_label.config(text="Message File not found")
         return
 
-    df = pd.read_excel(namelist_path)
+    df = pd.read_excel(namelist_path, dtype={"Mobile Number": str})
     root.attributes("-topmost", False)
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False, timeout=0)
@@ -133,7 +145,7 @@ def process_data():
             )
             if element:
                 failed_numbers.append(phone_number)
-                print(phone_number, "Failed!")
+                logger(f"{phone_number} Failed!")
                 page.close()
                 continue
 
@@ -155,19 +167,38 @@ def process_data():
                     raise Warning(f"{system().lower()} not supported!")
                 time.sleep(2)
                 pg.press("enter")
-                print("SENDING DOCUMENT")
+                logger(f"SENDING DOCUMENT to {phone_number}")
+                time.sleep(2)
 
             if image_paths:
                 for path in image_paths:
                     copy_image_to_clipboard(path)
                     time.sleep(1)
                     page.press("[aria-activedescendant]", "ControlOrMeta+v")
-                    print(f"SENDING IMAGE: {path}")
+                    logger(f"SENDING IMAGE to {phone_number}: {path}")
                     time.sleep(2)
 
-            time.sleep(2)
+            time.sleep(1)
             page.click('[data-icon="send"]')
-            time.sleep(2)
+            time.sleep(5)
+            max_wait = 20
+            for _ in range(max_wait):
+                last_message = page.locator('[data-tab="8"] div.message-out').last
+                if last_message:
+                    check = last_message.locator('[data-icon="msg-check"]')
+                    dbl_check = last_message.locator('[data-icon="msg-dblcheck"]')
+                    if dbl_check.count() > 0 or check.count() > 0:
+                        logger(
+                            f"{phone_number} Message sent and delivery confirmed"
+                        )
+                        break
+                time.sleep(1)
+            else:
+                logger(
+                    f"{phone_number} Message may not be delivered (no msg-check icon found).",
+                    logType="ERROR",
+                )
+
             page.close()
         time.sleep(5)
         # Log Out
@@ -194,8 +225,11 @@ def process_data():
         time.sleep(5)
         browser.close()
     time.sleep(1)
-    print(failed_numbers)
-    print("DONE!")
+    logger(
+        f"The following numbers has failed to send {failed_numbers}",
+        logType="ERROR",
+    )
+    logger("Process COMPLETED.")
     error_label.config(fg="green", text="DONE!")
     root.attributes("-topmost", True)
     return
@@ -208,15 +242,15 @@ def upload_file(file_type=()):
     error_label.config(fg="red")
     error_label.config(text="")
     if not file_path:
-        print("No file selected.")
+        logger("No file selected.", "ERROR")
         error_label.config(text="No file selected.")
         return
 
     try:
         with open(file_path, "r"):
-            print(f"File {file_path} is accessible.")
+            logger(f"File {file_path} is accessible.")
     except IOError as e:
-        print(f"Cannot access file {file_path}: {e}")
+        logger(f"Cannot access file {file_path}: {e}", "ERROR")
         error_label.config(text="No file selected.")
         return
     return file_path.replace("/", "\\")

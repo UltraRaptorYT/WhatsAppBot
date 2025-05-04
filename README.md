@@ -1,6 +1,6 @@
 # WhatsAppBot
 
-Automatically sends WhatsApp Messages to people using Pywright
+Automatically sends WhatsApp Messages to people using Playwright in the background.
 
 # Setup
 
@@ -29,3 +29,9 @@ Step 3: Upload Message Text file
 Step 4: Click on "Send Message" button
 
 Step 5: Scan Whatsapp Popup
+
+# Packaging
+
+```shell
+pyinstaller --onefile --add-data="C:\Users\sohho\AppData\Local\ms-playwright;ms-playwright" --icon="BWM.ico" main.py
+```
