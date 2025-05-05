@@ -119,7 +119,6 @@ def process_data():
         login_page.wait_for_selector(".xcgk4ki", timeout=0)  # Check for logged in
 
         for _, row in df.iterrows():
-            name = str(row["Name"])
             phone_number = str(row["Mobile Number"])
 
             if "+" not in str(phone_number):
@@ -130,7 +129,10 @@ def process_data():
                 message = f.read()
                 f.close()
 
-            message = message.replace("{name}", name)
+            for col in df.columns:
+                placeholder = f"{{{col}}}"
+                value = str(row[col])
+                message = message.replace(placeholder, value)
 
             page = context.new_page()
             page.goto(
@@ -138,19 +140,20 @@ def process_data():
                 wait_until="domcontentloaded",
             )
             page.wait_for_selector('[data-icon="menu"]', timeout=0)
-            time.sleep(5)
+            time.sleep(3)
             # Check if phone number is valid
             element = page.query_selector(
                 '[aria-label="Phone number shared via url is invalid."]'
             )
             if element:
                 failed_numbers.append(phone_number)
-                logger(f"{phone_number} Failed!")
+                logger(f"{phone_number} Failed!", "ERROR")
                 page.close()
                 continue
 
-            time.sleep(5)
+            time.sleep(3)
             page.wait_for_selector('[data-icon="send"]', timeout=0)
+
             if document_path:
                 time.sleep(2)
                 page.wait_for_selector('[data-icon="plus"]', timeout=0)
@@ -344,8 +347,8 @@ def main():
     instruction = """
 Instructions:
 
-1. Upload the Namelist Excel file. [Must contain the following COLUMN NAME ("Name", "Mobile Number")]
-2. Upload the Message Template file. [If want to be personalised, text should contain "{name}" so that it will be replaced by the "Name"]
+1. Upload the Namelist Excel file. [Must contain the following COLUMN NAME ("Mobile Number")]
+2. Upload the Message Template file. [If want to be personalised, text should contain "{Name}" so that it will be replaced by the "Name"]
 3. Upload the Image file(s) [Less than 16MB]. [OPTIONAL]
 4. Upload the Document file. [Less than 16MB] [OPTIONAL, Note using this mode will not allow for background running of bot]
 5. Click 'Send Message' to send message to namelist.
