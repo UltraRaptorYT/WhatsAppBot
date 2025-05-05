@@ -32,7 +32,11 @@ def logger(message, logType="INFO", log_file="log.txt"):
 
 
 def copy_image_to_clipboard(image_path):
-    image = Image.open(image_path)
+    try:
+        image = Image.open(image_path)
+    except Exception as e:
+        logger(f"Failed to open image at {image_path}: {e}", "ERROR")
+        raise ValueError(f"Failed to open image at {image_path}: {e}")
 
     # Save image to a bytes buffer
     output = BytesIO()
@@ -90,26 +94,36 @@ def process_data():
     global error_label
     error_label.config(text="", fg="red")
     if not namelist_path:
+        logger("Namelist File not selected", "ERROR")
         error_label.config(text="Namelist File not selected")
         return
     try:
         f = open(namelist_path, "r")
         f.close()
     except FileNotFoundError:
+        logger("Namelist File not found", "ERROR")
         error_label.config(text="Namelist File not found")
         return
 
     if not message_path:
+        logger("Message File not selected", "ERROR")
         error_label.config(text="Message File not selected")
         return
     try:
         f = open(message_path, "r")
         f.close()
     except FileNotFoundError:
+        logger("Message File not found", "ERROR")
         error_label.config(text="Message File not found")
         return
 
     df = pd.read_excel(namelist_path, dtype={"Mobile Number": str})
+
+    if "Mobile Number" not in df.columns:
+        logger("Missing 'Mobile Number' column in excel", "ERROR")
+        error_label.config(text="Missing 'Mobile Number' column in excel")
+        return
+
     root.attributes("-topmost", False)
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False, timeout=0)
@@ -123,6 +137,21 @@ def process_data():
 
             if "+" not in str(phone_number):
                 phone_number = f"+65{phone_number}"
+
+            row_image_paths = []
+            if "ImageURL" in row and pd.notna(row["ImageURL"]):
+                img_path = str(row["ImageURL"]).strip()
+                try:
+                    Image.open(img_path)
+                    row_image_paths.append(img_path)
+                    logger(
+                        f"Appended image path from Excel for {phone_number}: {img_path}"
+                    )
+                except Exception as e:
+                    logger(
+                        f"Invalid image path in Excel for {phone_number}: {img_path} | Error: {e}",
+                        "ERROR",
+                    )
 
             message = ""
             with open(message_path, "r", encoding="utf-8") as f:
@@ -173,8 +202,10 @@ def process_data():
                 logger(f"SENDING DOCUMENT to {phone_number}")
                 time.sleep(2)
 
-            if image_paths:
-                for path in image_paths:
+            row_image_paths += image_paths
+
+            if row_image_paths:
+                for path in row_image_paths:
                     copy_image_to_clipboard(path)
                     time.sleep(1)
                     page.press("[aria-activedescendant]", "ControlOrMeta+v")
@@ -353,6 +384,9 @@ Instructions:
 4. Upload the Document file. [Less than 16MB] [OPTIONAL, Note using this mode will not allow for background running of bot]
 5. Click 'Send Message' to send message to namelist.
 6. Click 'Reset' to clear the selected files.
+
+NOTE:
+CUSTOM IMAGES requires the PATH OF IMAGE and "ImageURL" column on excel
 """
 
     instruction_label = tk.Label(
