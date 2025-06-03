@@ -1,17 +1,15 @@
 import time
+import tkinter as tk
 from datetime import datetime
 from io import BytesIO
-from urllib.parse import quote
-from platform import system
-
-import tkinter as tk
 from tkinter import filedialog
+from urllib.parse import quote
 
 import pandas as pd
-import pyperclip
-import pyautogui as pg
-from PIL import Image
+import requests
+import tempfile
 import win32clipboard
+from PIL import Image
 from playwright.sync_api import sync_playwright
 
 root = None
@@ -133,7 +131,10 @@ def process_data():
         login_page.wait_for_selector(".xcgk4ki", timeout=0)  # Check for logged in
 
         for _, row in df.iterrows():
-            phone_number = str(row["Mobile Number"])
+            phone_number = str(row["Mobile Number"]).strip()
+
+            if not phone_number:
+                continue
 
             if "+" not in str(phone_number):
                 phone_number = f"+65{phone_number}"
@@ -142,14 +143,29 @@ def process_data():
             if "ImageURL" in row and pd.notna(row["ImageURL"]):
                 img_path = str(row["ImageURL"]).strip()
                 try:
-                    Image.open(img_path)
-                    row_image_paths.append(img_path)
-                    logger(
-                        f"Appended image path from Excel for {phone_number}: {img_path}"
-                    )
+                    if img_path.startswith("http://") or img_path.startswith(
+                        "https://"
+                    ):
+                        response = requests.get(img_path)
+                        response.raise_for_status()
+                        with tempfile.NamedTemporaryFile(
+                            delete=False, suffix=".jpg"
+                        ) as tmp_img:
+                            tmp_img.write(response.content)
+                            tmp_img_path = tmp_img.name
+                        row_image_paths.append(tmp_img_path)
+                        logger(
+                            f"Downloaded image from URL for {phone_number}: {img_path}"
+                        )
+                    else:
+                        Image.open(img_path)  # check validity
+                        row_image_paths.append(img_path)
+                        logger(
+                            f"Appended local image path for {phone_number}: {img_path}"
+                        )
                 except Exception as e:
                     logger(
-                        f"Invalid image path in Excel for {phone_number}: {img_path} | Error: {e}",
+                        f"Failed to load image for {phone_number}: {img_path} | Error: {e}",
                         "ERROR",
                     )
 
@@ -184,21 +200,12 @@ def process_data():
             page.wait_for_selector('[data-icon="send"]', timeout=0)
 
             if document_path:
-                time.sleep(2)
-                page.wait_for_selector('[data-icon="plus"]', timeout=0)
-                page.click('[data-icon="plus"]')
-                page.wait_for_selector('.xuxw1ft:has-text("Document")', timeout=0)
-                page.click('.xuxw1ft:has-text("Document")')
-                time.sleep(2)
-                pyperclip.copy(document_path)
-                if system().lower() in ("windows", "linux"):
-                    pg.hotkey("ctrl", "v")
-                elif system().lower() == "darwin":
-                    pg.hotkey("command", "v")
-                else:
-                    raise Warning(f"{system().lower()} not supported!")
-                time.sleep(2)
-                pg.press("enter")
+                logger(f"Uploading document: {document_path}")
+                with page.expect_file_chooser() as fc_info:
+                    page.click('[data-icon="plus"]')
+                    page.click('.xuxw1ft:has-text("Document")')
+                file_chooser = fc_info.value
+                file_chooser.set_files(document_path)
                 logger(f"SENDING DOCUMENT to {phone_number}")
                 time.sleep(2)
 
@@ -381,7 +388,7 @@ Instructions:
 1. Upload the Namelist Excel file. [Must contain the following COLUMN NAME ("Mobile Number")]
 2. Upload the Message Template file. [If want to be personalised, text should contain "{Name}" so that it will be replaced by the "Name"]
 3. Upload the Image file(s) [Less than 16MB]. [OPTIONAL]
-4. Upload the Document file. [Less than 16MB] [OPTIONAL, Note using this mode will not allow for background running of bot]
+4. Upload the Document file. [Less than 16MB] [OPTIONAL]
 5. Click 'Send Message' to send message to namelist.
 6. Click 'Reset' to clear the selected files.
 
