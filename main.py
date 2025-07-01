@@ -127,8 +127,23 @@ def process_data():
         browser = p.chromium.launch(headless=False, timeout=0)
         context = browser.new_context()
         login_page = context.new_page()
-        login_page.goto("https://web.whatsapp.com")
-        login_page.wait_for_selector(".xcgk4ki", timeout=0)  # Check for logged in
+        login_page.goto("https://web.whatsapp.com", timeout=0)
+        login_page.wait_for_selector(
+            '[data-icon="menu"]', timeout=0
+        )  # Check for logged in
+
+        buttons = login_page.query_selector_all("button")
+
+        for button in buttons:
+            if button.inner_text().strip() == "Continue":  # Unable To Change To Chinese
+                button.click()
+                break
+        else:
+            print("No 'Continue' button found.")
+
+        with open(message_path, "r", encoding="utf-8") as f:
+            base_message = f.read()
+            f.close()
 
         for _, row in df.iterrows():
             phone_number = str(row["Mobile Number"]).strip()
@@ -149,7 +164,7 @@ def process_data():
                         response = requests.get(img_path)
                         response.raise_for_status()
                         with tempfile.NamedTemporaryFile(
-                            delete=False, suffix=".jpg"
+                            delete=False, suffix=".png"
                         ) as tmp_img:
                             tmp_img.write(response.content)
                             tmp_img_path = tmp_img.name
@@ -169,10 +184,7 @@ def process_data():
                         "ERROR",
                     )
 
-            message = ""
-            with open(message_path, "r", encoding="utf-8") as f:
-                message = f.read()
-                f.close()
+            message = base_message[:]
 
             for col in df.columns:
                 placeholder = f"{{{col}}}"
@@ -185,7 +197,7 @@ def process_data():
                 wait_until="domcontentloaded",
             )
             page.wait_for_selector('[data-icon="menu"]', timeout=0)
-            time.sleep(3)
+            time.sleep(1)
             # Check if phone number is valid
             element = page.query_selector(
                 '[aria-label="Phone number shared via url is invalid."]'
@@ -196,18 +208,20 @@ def process_data():
                 page.close()
                 continue
 
-            time.sleep(3)
+            time.sleep(1)
             page.wait_for_selector('[data-icon="send"]', timeout=0)
 
             if document_path:
                 logger(f"Uploading document: {document_path}")
                 with page.expect_file_chooser() as fc_info:
                     page.click('[data-icon="plus"]')
-                    page.click('.xuxw1ft:has-text("Document")')
+                    page.click(
+                        '.xuxw1ft:has-text("Document")'
+                    )  # Unable To Change To Chinese
                 file_chooser = fc_info.value
                 file_chooser.set_files(document_path)
                 logger(f"SENDING DOCUMENT to {phone_number}")
-                time.sleep(2)
+                time.sleep(1)
 
             row_image_paths += image_paths
 
@@ -217,11 +231,11 @@ def process_data():
                     time.sleep(1)
                     page.press("[aria-activedescendant]", "ControlOrMeta+v")
                     logger(f"SENDING IMAGE to {phone_number}: {path}")
-                    time.sleep(2)
+                    time.sleep(1)
 
             time.sleep(1)
             page.click('[data-icon="send"]')
-            time.sleep(5)
+            time.sleep(1)
             max_wait = 20
             for _ in range(max_wait):
                 last_message = page.locator('[data-tab="8"] div.message-out').last
@@ -250,8 +264,10 @@ def process_data():
         login_page.click('[data-icon="menu"]')
         time.sleep(1)
         # Click on Log out btn
-        login_page.wait_for_selector('[aria-label="Log out"]', timeout=0)
-        login_page.click('[aria-label="Log out"]')
+        login_page.wait_for_selector(
+            '[aria-label="Log out"]', timeout=0
+        )  # Unable To Change To Chinese
+        login_page.click('[aria-label="Log out"]')  # Unable To Change To Chinese
         time.sleep(1)
         # Confirm logout btn
         login_page.wait_for_selector(".x1v8p93f", timeout=0)
@@ -260,8 +276,8 @@ def process_data():
         # Check Logout is confirmed
         login_page.wait_for_selector(
             '[aria-label="Scan this QR code to link a device!"]', timeout=0
-        )
-        time.sleep(5)
+        )  # Unable To Change To Chinese
+        time.sleep(1)
         browser.close()
     time.sleep(1)
     logger(
