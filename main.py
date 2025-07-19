@@ -1,3 +1,4 @@
+import os
 import time
 import tkinter as tk
 from datetime import datetime
@@ -19,6 +20,13 @@ message_label_text = "Message Text File"
 image_label_text = "Image Files"
 document_label_text = "Document File"
 failed_numbers = []
+
+
+def ensure_log_file():
+    if not os.path.exists("log.txt"):
+        with open("log.txt", "w", encoding="utf-8") as f:
+            print("[INFO] Log file created.")
+            f.write("[INFO] Log file created.\n")
 
 
 def logger(message, logType="INFO", log_file="log.txt"):
@@ -128,9 +136,7 @@ def process_data():
         context = browser.new_context()
         login_page = context.new_page()
         login_page.goto("https://web.whatsapp.com", timeout=0)
-        login_page.wait_for_selector(
-            'header', timeout=0
-        )  # Check for logged in
+        login_page.wait_for_selector("header", timeout=0)  # Check for logged in
 
         buttons = login_page.query_selector_all("button")
 
@@ -328,6 +334,7 @@ def upload_message_file():
 
 
 def main():
+    ensure_log_file()
     global root
 
     root = tk.Tk()
