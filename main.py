@@ -129,7 +129,7 @@ def process_data():
         login_page = context.new_page()
         login_page.goto("https://web.whatsapp.com", timeout=0)
         login_page.wait_for_selector(
-            '[data-icon="menu"]', timeout=0
+            'header', timeout=0
         )  # Check for logged in
 
         buttons = login_page.query_selector_all("button")
