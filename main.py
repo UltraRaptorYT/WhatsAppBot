@@ -202,7 +202,7 @@ def process_data():
                 f"https://web.whatsapp.com/send?phone={phone_number}&text={quote(message)}",
                 wait_until="domcontentloaded",
             )
-            page.wait_for_selector('[data-icon="menu"]', timeout=0)
+            page.wait_for_selector("header", timeout=0)
             time.sleep(1)
             # Check if phone number is valid
             element = page.query_selector(
@@ -215,12 +215,14 @@ def process_data():
                 continue
 
             time.sleep(1)
-            page.wait_for_selector('[data-icon="send"]', timeout=0)
+            page.wait_for_selector(
+                'button[data-tab="11"] > span', timeout=0
+            )  # Unable To Change To Chinese
 
             if document_path:
                 logger(f"Uploading document: {document_path}")
                 with page.expect_file_chooser() as fc_info:
-                    page.click('[data-icon="plus"]')
+                    page.click('[button[data-tab="10"]]')
                     page.click(
                         '.xuxw1ft:has-text("Document")'
                     )  # Unable To Change To Chinese
@@ -240,7 +242,9 @@ def process_data():
                     time.sleep(1)
 
             time.sleep(1)
-            page.click('[data-icon="send"]')
+            page.click(
+                'button[data-tab="11"] > span', force=True
+            )  # Unable To Change To Chinese
             time.sleep(1)
             max_wait = 20
             for _ in range(max_wait):
@@ -262,22 +266,30 @@ def process_data():
         time.sleep(5)
         # Log Out
         # Click on Use here
-        login_page.wait_for_selector(".x1v8p93f", timeout=0)
-        login_page.click(".x1v8p93f")
+        login_page.wait_for_selector(
+            '.x1v8p93f:has-text("Use here")', timeout=0
+        )  # Unable To Change To Chinese
+        login_page.click(
+            '.x1v8p93f:has-text("Use here")'
+        )  # Unable To Change To Chinese
         time.sleep(1)
         # Open the Menu Dropdown
-        login_page.wait_for_selector('[data-icon="menu"]', timeout=0)
-        login_page.click('[data-icon="menu"]')
+        login_page.wait_for_selector(
+            '[title="Menu"]', timeout=0
+        )  # Unable To Change To Chinese
+        login_page.click('[title="Menu"]')  # Unable To Change To Chinese
         time.sleep(1)
         # Click on Log out btn
         login_page.wait_for_selector(
-            '[aria-label="Log out"]', timeout=0
+            'text="Log out"', timeout=0
         )  # Unable To Change To Chinese
-        login_page.click('[aria-label="Log out"]')  # Unable To Change To Chinese
+        login_page.click('text="Log out"')  # Unable To Change To Chinese
         time.sleep(1)
         # Confirm logout btn
-        login_page.wait_for_selector(".x1v8p93f", timeout=0)
-        login_page.click(".x1v8p93f")
+        login_page.wait_for_selector(
+            '.x1v8p93f:has-text("Log out")', timeout=0
+        )  # Unable To Change To Chinese
+        login_page.click('.x1v8p93f:has-text("Log out")')  # Unable To Change To Chinese
         time.sleep(1)
         # Check Logout is confirmed
         login_page.wait_for_selector(
